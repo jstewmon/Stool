@@ -1,5 +1,4 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
+﻿using log4net.Config;
 
 namespace Stool.Example
 {
@@ -7,6 +6,7 @@ namespace Stool.Example
     {
         public static void Run()
         {
+            XmlConfigurator.Configure();
             new MyApp();
         }
     }

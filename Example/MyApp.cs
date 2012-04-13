@@ -9,7 +9,9 @@ namespace Stool.Example
         public MyApp()
         {
             CascadeLayouts = true;
+            TemplateDirectory = "~/templates";
             Get("", Render("home.vm", GetHomeData));
+            Get("plain", Render("plain.vm"));
             On(new[] { "GET", "POST" }, "foo/bar", FooBar);
             Get("home/null", Render<Customer>("home.vm", () => null));
             Get("sub/home", Render<Customer>("sub/home.vm", () => null));

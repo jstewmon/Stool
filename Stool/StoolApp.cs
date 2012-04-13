@@ -7,11 +7,14 @@ using System.Web.Routing;
 using Commons.Collections;
 using NVelocity;
 using NVelocity.App;
+using log4net;
 
 namespace Stool
 {
     public abstract class StoolApp
     {
+        private static readonly ILog Log = LogManager.GetLogger(typeof(StoolApp));
+
         /// <summary>
         ///  When using <see cref="Render"/>, this will be the name of the token through which data can be accessed in the template.
         /// </summary>
@@ -61,40 +64,62 @@ namespace Stool
 
         public Action<HttpContext> Render(string templatePath)
         {
-            return Render<object>(templatePath, () => null);
+            Log.Debug("Begin Render " + templatePath);
+            var handler =  Render<object>(templatePath, () => null);
+            Log.Debug("End Render " + templatePath);
+            return handler;
         } 
 
         public Action<HttpContext> Render<T>(string templatePath, Func<T> dataLoader)
         {
             return ctx =>
                        {
+                           Log.DebugFormat("Begin Render templatePath: {0}, dataLoader: {1}", templatePath, dataLoader);
+                           
                            var velocity = new VelocityEngine();
                            var props = new ExtendedProperties();
                            props.AddProperty("file.resource.loader.path", ctx.Server.MapPath(TemplateDirectory));
+                           
+                           Log.DebugFormat("Initializing velocity with file.resource.loader.path: {0}", props["file.resource.loader.path"]);
                            velocity.Init(props);
+                           
+                           Log.Debug("Getting template: " + templatePath);
                            var template = velocity.GetTemplate(templatePath);
+                           
                            var context = new VelocityContext();
                            context.Put(DataKey, dataLoader());
+                           
                            string layoutPath;
                            if (UseLayouts && !string.IsNullOrEmpty(layoutPath = FindLayout(velocity, templatePath, LayoutName)))
                            {
+                               Log.DebugFormat("Using layout {0}", layoutPath);
                                var layout = velocity.GetTemplate(layoutPath);
                                using (var writer = new StringWriter())
                                {
                                    template.Merge(context, writer);
                                    context.Put("childContent", writer.ToString());
+
+                                   Log.Debug("Merging template with layout");
                                    layout.Merge(context, ctx.Response.Output);
                                }
                            }
-                           else template.Merge(context, ctx.Response.Output);
+                           else
+                           {
+                               Log.Debug("Merging without layout");
+                               template.Merge(context, ctx.Response.Output);
+                           }
+                           Log.DebugFormat("End Render templatePath: {0}, dataLoader: {1}", templatePath, dataLoader);
                        };
+
         }
 
         private string FindLayout(VelocityEngine velocity, string templatePath, string layoutName)
         {
+            Log.DebugFormat("Begin FindLayout templatePath: {0}, layoutName: {1}", templatePath, layoutName);
             var layoutPath = JoinPaths(templatePath, layoutName);
             if (velocity.TemplateExists(layoutPath))
             {
+                Log.DebugFormat("Found layoutPath: {0}", layoutPath);
                 return layoutPath;
             }
             var parts = templatePath.Split('/');
