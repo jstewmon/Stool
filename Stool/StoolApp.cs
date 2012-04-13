@@ -12,35 +12,57 @@ namespace Stool
 {
     public abstract class StoolApp
     {
-        private string _dataKey = "data";
+        /// <summary>
+        ///  When using <see cref="Render"/>, this will be the name of the token through which data can be accessed in the template.
+        /// </summary>
         public string DataKey
         {
             get { return _dataKey; }
             set { _dataKey = value; }
         }
+        private string _dataKey = "data";
 
-        private string _templateDirectory = "~/templates";
+        /// <summary>
+        /// Virtual path to your templates
+        /// </summary>
+        /// <remarks>Defaults to "~/templates"</remarks>
         public string TemplateDirectory
         {
             get { return _templateDirectory; }
             set { _templateDirectory = value; }
         }
+        private string _templateDirectory = "~/templates";
 
-        private bool _useLayouts = true;
+        /// <summary>
+        /// Determines whether the a layout will be searched for when rendering a template.
+        /// </summary>
         public bool UseLayouts
         {
             get { return _useLayouts; }
             set { _useLayouts = value; }
         }
+        private bool _useLayouts = true;
 
+        /// <summary>
+        /// Whether or not parent directories should be searched for a layout if one is not found in the same directory as the template
+        /// </summary>
         public bool CascadeLayouts { get; set; }
 
-        private string _layoutName = "layout.vm";
+        /// <summary>
+        /// The name of layout files
+        /// </summary>
+        /// <remarks>Defaults to "layout.vm"</remarks>
         public string LayoutName
         {
             get { return _layoutName; }
             set { _layoutName = value; }
         }
+        private string _layoutName = "layout.vm";
+
+        public Action<HttpContext> Render(string templatePath)
+        {
+            return Render<object>(templatePath, () => null);
+        } 
 
         public Action<HttpContext> Render<T>(string templatePath, Func<T> dataLoader)
         {
