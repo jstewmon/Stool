@@ -1,0 +1,4 @@
+<Modules>
+  <Module PersistentId="DF1DA08C-DAD1-4A0F-A6CA-5C4C04BF57CB" ModuleId="Stool" />
+  <Module PersistentId="NVelocity, Version=1.1.1.0, Culture=neutral, PublicKeyToken=407dd0808d44fbdc" ModuleId="NVelocity" />
+</Modules>
