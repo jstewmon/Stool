@@ -93,12 +93,10 @@ namespace Stool
             return VirtualPathUtility.Combine(p1, p2).TrimStart('~', '/');
         }
 
-
-        //private void Default(Action<HttpContext> render)
-        //{
-        //    RouteTable.Routes.Add(
-        //        new Route("Default", new RouteHandler(render)));
-        //}
+        public static Action<HttpContext> Send<T>(Func<T> dataLoader)
+        {
+            return ctx => ctx.Send(dataLoader());
+        }
 
         public static void Get(string path, Action<HttpContext> handler)
         {
