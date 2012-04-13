@@ -1,0 +1,9 @@
+﻿Hello, your data is: 
+#if($data)
+Name: $data.name
+Salary: $data.salary
+#end
+
+#if(!$data)
+No Data!
+#end

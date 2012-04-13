@@ -1,0 +1,14 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+	<head>
+		<title>NVelocity Layout</title>
+	</head>
+	<body>
+	
+	<h1>NVelocity Layout</h1>
+	
+	$childContent
+	
+	<p>This is a footer.</p>
+	</body>
+</html>

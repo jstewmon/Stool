@@ -1,139 +1,125 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Web;
 using System.Web.Routing;
 using Commons.Collections;
 using NVelocity;
 using NVelocity.App;
-using NVelocity.Context;
 
 namespace Stool
 {
-    //public class HelloHandler : AbstractAsyncHandler
-    //{
-    //    protected override Task ProcessRequestAsync(HttpContext context)
-    //    {
-    //        context.Response.ContentType = "text/plain";
-    //        return context.Response.Output.WriteAsync("Hello World!");
-    //    }
-    //}
-
-    
-
-    public class RouteHandler : IRouteHandler
+    public abstract class StoolApp
     {
-        private readonly Action<HttpContext> _handler;
-
-        public RouteHandler(Action<HttpContext> handler)
+        private string _dataKey = "data";
+        public string DataKey
         {
-            _handler = handler;
+            get { return _dataKey; }
+            set { _dataKey = value; }
         }
 
-        public IHttpHandler GetHttpHandler(RequestContext requestContext)
+        private string _templateDirectory = "~/templates";
+        public string TemplateDirectory
         {
-            return new AsyncHandler(_handler);
-        }
-    }
-
-    public class AsyncHandler : IHttpAsyncHandler
-    {
-        private readonly Action<HttpContext> _processor;
-        public AsyncHandler(Action<HttpContext> processor)
-        {
-            _processor = processor;
+            get { return _templateDirectory; }
+            set { _templateDirectory = value; }
         }
 
-        private Task ProcessRequestAsync(HttpContext context, AsyncCallback cb)
+        private bool _useLayouts = true;
+        public bool UseLayouts
         {
-            return Task.Factory.StartNew(() => _processor(context)).ContinueWith(task => cb(task));
+            get { return _useLayouts; }
+            set { _useLayouts = value; }
         }
 
-        public void ProcessRequest(HttpContext context)
+        public bool CascadeLayouts { get; set; }
+
+        private string _layoutName = "layout.vm";
+        public string LayoutName
         {
-            throw new NotImplementedException("I want async!");
-            _processor(context);
+            get { return _layoutName; }
+            set { _layoutName = value; }
         }
 
-        public bool IsReusable
-        {
-            get { return true; }
-        }
-
-        public IAsyncResult BeginProcessRequest(HttpContext context, AsyncCallback cb, object extraData)
-        {
-            return ProcessRequestAsync(context, cb);
-        }
-
-        public void EndProcessRequest(IAsyncResult result)
-        {
-            if (result == null)
-                return;
-            ((Task)result).Dispose();
-        }
-    }
-
-    public class MyApp : StoolApp
-    {
-        public MyApp()
-        {
-            Get("foo/bar", FooBar);
-            Get("home", Render("home.vm", GetHomeData));
-            Get("sub/home", Render("sub/home.vm", GetHomeData));
-        }
-
-        public int GetHomeData()
-        {
-            return 5;
-        }
-
-        public void FooBar(HttpContext context)
-        {
-            context.Response.ContentType = "text/plain";
-            context.Response.Write("Hello World!");
-            context.Response.End();
-        }
-    }
-
-    public class StoolApp
-    {
-        public static Action<HttpContext> Render<T>(string templatePath, Func<T> dataLoader)
+        public Action<HttpContext> Render<T>(string templatePath, Func<T> dataLoader)
         {
             return ctx =>
                        {
-
                            var velocity = new VelocityEngine();
                            var props = new ExtendedProperties();
-                           props.AddProperty("file.resource.loader.path", ctx.Server.MapPath("~/templates"));
+                           props.AddProperty("file.resource.loader.path", ctx.Server.MapPath(TemplateDirectory));
                            velocity.Init(props);
                            var template = velocity.GetTemplate(templatePath);
-
                            var context = new VelocityContext();
-                           context.Put("data", dataLoader());
-                           template.Merge(context, ctx.Response.Output);
-                       }; 
+                           context.Put(DataKey, dataLoader());
+                           string layoutPath;
+                           if (UseLayouts && !string.IsNullOrEmpty(layoutPath = FindLayout(velocity, templatePath, LayoutName)))
+                           {
+                               var layout = velocity.GetTemplate(layoutPath);
+                               using (var writer = new StringWriter())
+                               {
+                                   template.Merge(context, writer);
+                                   context.Put("childContent", writer.ToString());
+                                   layout.Merge(context, ctx.Response.Output);
+                               }
+                           }
+                           else template.Merge(context, ctx.Response.Output);
+                       };
         }
+
+        private string FindLayout(VelocityEngine velocity, string templatePath, string layoutName)
+        {
+            var layoutPath = JoinPaths(templatePath, layoutName);
+            if (velocity.TemplateExists(layoutPath))
+            {
+                return layoutPath;
+            }
+            var parts = templatePath.Split('/');
+            if (CascadeLayouts && parts.Length > 1)
+            {
+                var upOne = string.Join("/", parts.TakeWhile((s, i) => i < parts.Length - 1));
+                return FindLayout(velocity, upOne, layoutName);
+            }
+            return null;
+        }
+
+        private static string JoinPaths(string p1, string p2)
+        {
+            if (!p1.StartsWith("/") && !p1.StartsWith("~"))
+            {
+                p1 = "~/" + p1;
+            }
+            return VirtualPathUtility.Combine(p1, p2).TrimStart('~', '/');
+        }
+
+
+        //private void Default(Action<HttpContext> render)
+        //{
+        //    RouteTable.Routes.Add(
+        //        new Route("Default", new RouteHandler(render)));
+        //}
 
         public static void Get(string path, Action<HttpContext> handler)
         {
-            On(new []{"GET"}, path, handler);
+            On(new[] { "GET" }, path, handler);
         }
 
         public static void Post(string path, Action<HttpContext> handler)
         {
-            On(new[] { "GET" }, path, handler);
+            On(new[] { "POST" }, path, handler);
         }
 
         public static void On(IEnumerable<string> httpMethods, string path, Action<HttpContext> handler)
         {
             RouteTable.Routes.Add(
-                new Route(path,
-                          new RouteValueDictionary
-                              {
-                                  {"httpMethod", new HttpMethodConstraint(httpMethods.ToArray())}
-                              },
-                          new RouteHandler(handler)));
+                new Route(path, new RouteHandler(handler))
+                    {
+                        Constraints = new RouteValueDictionary
+                                          {
+                                              {"httpMethod", new HttpMethodConstraint(httpMethods.ToArray())}
+                                          }
+                    });
         }
     }
 }
