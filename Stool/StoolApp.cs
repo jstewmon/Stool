@@ -51,6 +51,8 @@ namespace Stool
         /// </summary>
         public bool CascadeLayouts { get; set; }
 
+        public Action<HttpContext, Exception> ExceptionHandler { get; set; }
+
         /// <summary>
         /// The name of layout files
         /// </summary>
@@ -62,6 +64,11 @@ namespace Stool
         }
         private string _layoutName = "layout.vm";
 
+        /// <summary>
+        /// Renders <paramref name="templatePath"/> with NVelocity
+        /// </summary>
+        /// <param name="templatePath"></param>
+        /// <returns></returns>
         public Action<HttpContext> Render(string templatePath)
         {
             Log.Debug("Begin Render " + templatePath);
@@ -70,6 +77,13 @@ namespace Stool
             return handler;
         } 
 
+        /// <summary>
+        /// Calls <paramref name="dataLoader"/> and merges the result with <paramref name="templatePath"/> using nvelocity.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="templatePath"></param>
+        /// <param name="dataLoader"></param>
+        /// <returns></returns>
         public Action<HttpContext> Render<T>(string templatePath, Func<T> dataLoader)
         {
             return ctx =>
@@ -140,31 +154,42 @@ namespace Stool
             return VirtualPathUtility.Combine(p1, p2).TrimStart('~', '/');
         }
 
-        public static Action<HttpContext> Send<T>(Func<T> dataLoader)
+        public Action<HttpContext> Send<T>(Func<T> dataLoader)
         {
             return ctx => ctx.Send(dataLoader());
         }
 
-        public static void Get(string path, Action<HttpContext> handler)
+        public AsyncHandler Get(string path, Action<HttpContext> handler)
         {
-            On(new[] { "GET" }, path, handler);
+            return On(new[] { "GET" }, path, handler);
         }
 
-        public static void Post(string path, Action<HttpContext> handler)
+        public AsyncHandler Post(string path, Action<HttpContext> handler)
         {
-            On(new[] { "POST" }, path, handler);
+            return On(new[] { "POST" }, path, handler);
         }
 
-        public static void On(IEnumerable<string> httpMethods, string path, Action<HttpContext> handler)
+        public AsyncHandler On(IEnumerable<string> httpMethods, string path, Action<HttpContext> handler)
         {
+            return On(httpMethods, path, handler, null);
+        }
+
+        public AsyncHandler On(IEnumerable<string> httpMethods, string path, Action<HttpContext> handler, Action<HttpContext, Exception> exceptionHandler)
+        {
+            var requestHandler = new AsyncHandler(handler);
+            if((exceptionHandler = exceptionHandler ?? ExceptionHandler) != null)
+            {
+                requestHandler.ExceptionHandler = exceptionHandler;
+            }
             RouteTable.Routes.Add(
-                new Route(path, new RouteHandler(handler))
+                new Route(path, new RouteHandler(requestHandler))
                     {
                         Constraints = new RouteValueDictionary
                                           {
                                               {"httpMethod", new HttpMethodConstraint(httpMethods.ToArray())}
                                           }
                     });
+            return requestHandler;
         }
     }
 }

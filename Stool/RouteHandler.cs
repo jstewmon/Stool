@@ -6,16 +6,16 @@ namespace Stool
 {
     public class RouteHandler : IRouteHandler
     {
-        private readonly Action<HttpContext> _handler;
+        private readonly IHttpHandler _handler;
 
-        public RouteHandler(Action<HttpContext> handler)
+        public RouteHandler(IHttpHandler handler)
         {
             _handler = handler;
         }
 
         public IHttpHandler GetHttpHandler(RequestContext requestContext)
         {
-            return new AsyncHandler(_handler);
+            return _handler;
         }
     }
 }

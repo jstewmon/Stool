@@ -12,9 +12,24 @@ namespace Stool
             _processor = processor;
         }
 
-        private Task ProcessRequestAsync(HttpContext context, AsyncCallback cb)
+        private Action<HttpContext, Exception> _errorHandler;
+        public Action<HttpContext, Exception> ExceptionHandler
         {
-            return Task.Factory.StartNew(() => _processor(context)).ContinueWith(task => cb(task));
+            get { return _errorHandler ?? HandleError; }
+            set { _errorHandler = value; }
+        }
+
+        public AsyncHandler OnException(Action<HttpContext, Exception> exceptionHandler)
+        {
+            ExceptionHandler = exceptionHandler;
+            return this;
+        }
+
+        private void HandleError(HttpContext context, Exception exception)
+        {
+            context.Response.Clear();
+            context.Response.StatusCode = 500;
+            context.Response.Write(exception);
         }
 
         public void ProcessRequest(HttpContext context)
@@ -29,7 +44,9 @@ namespace Stool
 
         public IAsyncResult BeginProcessRequest(HttpContext context, AsyncCallback cb, object extraData)
         {
-            return ProcessRequestAsync(context, cb);
+            return Task.Factory.StartNew(() => _processor(context))
+                .ContinueWith(task => ExceptionHandler(context, task.Exception), TaskContinuationOptions.OnlyOnFaulted)
+                .ContinueWith(task => cb(task), TaskContinuationOptions.NotOnFaulted);
         }
 
         public void EndProcessRequest(IAsyncResult result)
