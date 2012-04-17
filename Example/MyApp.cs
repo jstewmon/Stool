@@ -14,6 +14,7 @@ namespace Stool.Example
             Get("plain", Render("plain.vm"));
             On(new[] { "GET", "POST" }, "foo/bar", FooBar);
             Get("home/null", Render<Customer>("home.vm", () => null));
+            Get("something/null", Send(GetSomethingNull));
             Get("sub/home", Render<Customer>("sub/home.vm", () => null));
             Get("customer", Send(GetHomeData));
             Get("customer/{id}", ctx => ctx.Send(GetCustomer(int.Parse(ctx.Request.RequestContext.RouteData.Values["id"].ToString()))));
@@ -31,6 +32,11 @@ namespace Stool.Example
         {
             public string name { get; set; }
             public decimal salary { get; set; }
+        }
+
+        public Customer GetSomethingNull()
+        {
+            return null;
         }
 
         public Customer GetCustomer(int id)
