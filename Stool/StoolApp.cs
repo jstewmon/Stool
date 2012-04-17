@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Web;
 using System.Web.Routing;
 using Commons.Collections;
@@ -177,19 +178,37 @@ namespace Stool
         public AsyncHandler On(IEnumerable<string> httpMethods, string path, Action<HttpContext> handler, Action<HttpContext, Exception> exceptionHandler)
         {
             var requestHandler = new AsyncHandler(handler);
+            foreach(var mw in _middleWare)
+            {
+                requestHandler.Use(mw);
+            }
             if((exceptionHandler = exceptionHandler ?? ExceptionHandler) != null)
             {
                 requestHandler.ExceptionHandler = exceptionHandler;
             }
-            RouteTable.Routes.Add(
-                new Route(path, new RouteHandler(requestHandler))
-                    {
-                        Constraints = new RouteValueDictionary
-                                          {
-                                              {"httpMethod", new HttpMethodConstraint(httpMethods.ToArray())}
-                                          }
-                    });
+            var route = new Route(path, new RouteHandler(requestHandler))
+                            {
+                                Constraints = new RouteValueDictionary
+                                                  {
+                                                      {"httpMethod", new HttpMethodConstraint(httpMethods.ToArray())}
+                                                  }
+                            };
+            RouteTable.Routes.Add(route);
             return requestHandler;
         }
+
+        /// <summary>
+        /// Provide middlware to be run on all requests defined after the middleware is added.
+        /// </summary>
+        /// <param name="middleWare"></param>
+        /// <returns></returns>
+        public StoolApp Use(Action<HttpContext, CancellationTokenSource> middleWare)
+        {
+            _middleWare.Add(middleWare);
+            return this;
+        }
+
+        private readonly List<Action<HttpContext, CancellationTokenSource>> _middleWare = new List<Action<HttpContext, CancellationTokenSource>>();
+
     }
 }

@@ -18,7 +18,19 @@ namespace Stool.Example
             Get("customer", Send(GetHomeData));
             Get("customer/{id}", ctx => ctx.Send(GetCustomer(int.Parse(ctx.Request.RequestContext.RouteData.Values["id"].ToString()))));
             Get("error/default", ctx => { throw new NotImplementedException(); });
-            Get("error/custom", ctx => { throw new NotImplementedException(); })
+            Get("error/custom/{*err}", ctx => { throw new NotImplementedException(); })
+                .Use((ctx, cts) => ctx.Items.Add("foo", "bar"))
+                .Use((ctx, cts) =>
+                         {
+                             var err = ctx.Request.RequestContext.RouteData.Values["err"];
+                             if(err == null)
+                             {
+                                 ctx.Response.Clear();
+                                 ctx.Response.StatusCode = 200;
+                                 ctx.Response.Write(ctx.Items["foo"]);
+                                 cts.Cancel();
+                             }
+                         })
                 .OnException((ctx, ex) =>
                                  {
                                      ctx.Response.Clear();
