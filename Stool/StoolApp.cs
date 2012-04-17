@@ -154,7 +154,7 @@ namespace Stool
             return VirtualPathUtility.Combine(p1, p2).TrimStart('~', '/');
         }
 
-        public Action<HttpContext> Send<T>(Func<T> dataLoader) where T : class
+        public Action<HttpContext> Send<T>(Func<T> dataLoader)
         {
             return ctx => ctx.Send(dataLoader());
         }
