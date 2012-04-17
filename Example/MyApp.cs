@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Web;
 using Stool;
 
@@ -19,7 +18,6 @@ namespace Stool.Example
             Get("sub/home", Render<Customer>("sub/home.vm", () => null));
             Get("customer", Send(GetHomeData));
             Get("customer/{id}", ctx => ctx.Send(GetCustomer(int.Parse(ctx.Request.RequestContext.RouteData.Values["id"].ToString()))));
-            Get("customers/{num}", ctx => ctx.Send(GetCustomers(int.Parse(ctx.Request.RequestContext.RouteData.Values["num"].ToString()))));
             Get("error/default", ctx => { throw new NotImplementedException(); });
             Get("error/custom", ctx => { throw new NotImplementedException(); })
                 .OnException((ctx, ex) =>
@@ -34,11 +32,6 @@ namespace Stool.Example
         {
             public string name { get; set; }
             public decimal salary { get; set; }
-        }
-
-        public IEnumerable<Customer> GetCustomers(int num)
-        {
-            return num == 0 ? null : new []{new Customer{name = "customer " + num, salary = num * 10}};
         }
 
         public Customer GetSomethingNull()
