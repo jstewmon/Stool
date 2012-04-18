@@ -17,6 +17,8 @@ namespace Stool.Example
             Get("sub/home", Render<Customer>("sub/home.vm", () => null));
             Get("customer", Send(GetHomeData));
             Get("customer/{id}", ctx => ctx.Send(GetCustomer(int.Parse(ctx.Request.RequestContext.RouteData.Values["id"].ToString()))));
+            Get("error/json", ctx => ctx.Send(new {message = "OH NO!!!!"}, 500));
+            Get("error/json/{code}", ctx => ctx.Send(new {message = "OH NO!!!!"}, int.Parse(ctx.Request.RequestContext.RouteData.Values["code"].ToString())));
             Get("error/default", ctx => { throw new NotImplementedException(); });
             Get("error/custom/{*err}", ctx => { throw new NotImplementedException(); })
                 .Use((ctx, next) =>
