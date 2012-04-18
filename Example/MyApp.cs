@@ -28,7 +28,8 @@ namespace Stool.Example
                                  ctx.Response.Clear();
                                  ctx.Response.StatusCode = 200;
                                  ctx.Response.Write(ctx.Items["foo"]);
-                                 cts.Cancel();
+                                 cts.Cancel(true);
+                                 //cts.Token.ThrowIfCancellationRequested();
                              }
                              else if(err.ToString() == "bar")
                              {
@@ -39,7 +40,7 @@ namespace Stool.Example
                                  {
                                      ctx.Response.Clear();
                                      ctx.Response.StatusCode = 500;
-                                     ctx.Response.Write("Oh NO!  An error occurred!");
+                                     ctx.Response.Write("Oh NO!  An error occurred!" + ex);
                                  });
         }
 

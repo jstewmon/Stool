@@ -61,31 +61,65 @@ namespace Stool
 
         public IAsyncResult BeginProcessRequest(HttpContext context, AsyncCallback cb, object extraData)
         {
-            Task task = null;
             var cts = new CancellationTokenSource();
+            Task task = null;
             foreach(var mw in _middleWare)
             {
-                var currentMw = mw;
                 var current = mw;
                 if (task == null)
                 {
-                    task = Task.Factory.StartNew(() => current(context, cts), cts.Token);
+                    task = Task.Factory.StartNew(() =>
+                                                     {
+                                                         current(context, cts);
+                                                         cts.Token.ThrowIfCancellationRequested();
+                                                     }, cts.Token);
                 }
                 else
                 {
-                    task = task.ContinueWith(t => currentMw(context, cts), cts.Token,
-                                          TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Current);
+                    task = task.ContinueWith(t =>
+                                                 {
+                                                     current(context, cts);
+                                                     cts.Token.ThrowIfCancellationRequested();
+                                                 }, cts.Token,
+                                          TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.AttachedToParent, TaskScheduler.Current);
                 }
-                task.ContinueWith(t => ExceptionHandler(context, t.Exception), cts.Token, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Current);
+                task.ContinueWith(t =>
+                                      {
+                                          ExceptionHandler(context, t.Exception);
+                                      }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.AttachedToParent)
+                    .ContinueWith(t =>
+                                      {
+                                          Task.Factory.StartNew(() => { }).ContinueWith(it => cb(it));
+                                      }, TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.AttachedToParent);
+                task.ContinueWith(t =>
+                                      {
+                                          Task.Factory.StartNew(() => { }).ContinueWith(it => cb(it));
+                                      }, TaskContinuationOptions.OnlyOnCanceled | TaskContinuationOptions.AttachedToParent);
             }
             
             task = (task == null)
                        ? Task.Factory.StartNew(() => _processor(context))
-                       : task.ContinueWith(t => _processor(context), cts.Token,
-                                          TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Current);
-            
-            task.ContinueWith(t => ExceptionHandler(context, t.Exception), TaskContinuationOptions.OnlyOnFaulted)
-                .ContinueWith(t => cb(t), TaskContinuationOptions.NotOnFaulted);
+                       : task.ContinueWith(t =>
+                                               {
+                                                   _processor(context);
+                                               }, TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.AttachedToParent);
+
+            task.ContinueWith(t =>
+                                  {
+                                      if (t.IsFaulted)
+                                      {
+                                          try
+                                          {
+                                              ExceptionHandler(context, t.Exception);
+                                          }
+                                          catch (Exception ex)
+                                          {
+                                              HandleError(context, ex);
+                                          }
+                                      }
+                                      else if(!t.IsCanceled)
+                                        cb(t);
+                                  }, TaskContinuationOptions.AttachedToParent);
             return task;
         }
 
