@@ -30,6 +30,10 @@ namespace Stool.Example
                                  ctx.Response.Write(ctx.Items["foo"]);
                                  cts.Cancel();
                              }
+                             else if(err.ToString() == "bar")
+                             {
+                                 throw new InvalidOperationException();
+                             }
                          })
                 .OnException((ctx, ex) =>
                                  {

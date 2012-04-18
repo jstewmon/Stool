@@ -76,7 +76,7 @@ namespace Stool
                     task = task.ContinueWith(t => currentMw(context, cts), cts.Token,
                                           TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Current);
                 }
-                task.ContinueWith(t => ExceptionHandler(context, t.Exception), TaskContinuationOptions.OnlyOnFaulted);
+                task.ContinueWith(t => ExceptionHandler(context, t.Exception), cts.Token, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Current);
             }
             
             task = (task == null)
