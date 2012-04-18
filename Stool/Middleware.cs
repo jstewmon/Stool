@@ -19,7 +19,11 @@ namespace Stool
         /// <param name="next"></param>
         public static void ParseBody(HttpContext ctx, Action next)
         {
-            if (ctx.Request.HttpMethod != "POST") return;
+            if (ctx.Request.HttpMethod != "POST")
+            {
+                next();
+                return;
+            }
 
             using (var reader = new StreamReader(ctx.Request.InputStream))
             {
