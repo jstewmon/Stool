@@ -54,6 +54,7 @@
   <ItemGroup>
     <Compile Include="AsyncHandler.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="Middleware.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RouteHandler.cs" />
     <Compile Include="StoolApp.cs" />

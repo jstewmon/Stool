@@ -202,13 +202,13 @@ namespace Stool
         /// </summary>
         /// <param name="middleWare"></param>
         /// <returns></returns>
-        public StoolApp Use(Action<HttpContext, CancellationTokenSource> middleWare)
+        public StoolApp Use(Action<HttpContext, Action> middleWare)
         {
             _middleWare.Add(middleWare);
             return this;
         }
 
-        private readonly List<Action<HttpContext, CancellationTokenSource>> _middleWare = new List<Action<HttpContext, CancellationTokenSource>>();
+        private readonly List<Action<HttpContext, Action>> _middleWare = new List<Action<HttpContext, Action>>();
 
     }
 }

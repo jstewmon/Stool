@@ -19,8 +19,12 @@ namespace Stool.Example
             Get("customer/{id}", ctx => ctx.Send(GetCustomer(int.Parse(ctx.Request.RequestContext.RouteData.Values["id"].ToString()))));
             Get("error/default", ctx => { throw new NotImplementedException(); });
             Get("error/custom/{*err}", ctx => { throw new NotImplementedException(); })
-                .Use((ctx, cts) => ctx.Items.Add("foo", "bar"))
-                .Use((ctx, cts) =>
+                .Use((ctx, next) =>
+                         {
+                             ctx.Items.Add("foo", "bar");
+                             next();
+                         })
+                .Use((ctx, next) =>
                          {
                              var err = ctx.Request.RequestContext.RouteData.Values["err"];
                              if(err == null)
@@ -28,13 +32,13 @@ namespace Stool.Example
                                  ctx.Response.Clear();
                                  ctx.Response.StatusCode = 200;
                                  ctx.Response.Write(ctx.Items["foo"]);
-                                 cts.Cancel(true);
-                                 //cts.Token.ThrowIfCancellationRequested();
+                                 return;
                              }
-                             else if(err.ToString() == "bar")
+                             if(err.ToString() == "bar")
                              {
                                  throw new InvalidOperationException();
                              }
+                             next();
                          })
                 .OnException((ctx, ex) =>
                                  {

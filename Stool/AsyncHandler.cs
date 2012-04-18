@@ -1,13 +1,14 @@
 using System;
-using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using log4net;
 
 namespace Stool
 {
     public class AsyncHandler : IHttpAsyncHandler
     {
+        private static readonly ILog _log = LogManager.GetLogger(typeof (AsyncHandler));
+
         private readonly Action<HttpContext> _processor;
         public AsyncHandler(Action<HttpContext> processor)
         {
@@ -27,16 +28,11 @@ namespace Stool
             return this;
         }
 
-        /// <summary>
-        /// Provide a function to be run as middleware during the processing of a request.
-        /// Middleware are run in the order in which they were added.
-        /// Calling cancel on the <see cref="CancellationTokenSource"/> will hault the processing of additional middleware, the request handler and the exception handler.
-        /// </summary>
-        /// <param name="middleWare"></param>
-        /// <returns></returns>
-        public AsyncHandler Use(Action<HttpContext, CancellationTokenSource> middleWare)
+        private Action<HttpContext, Action> _middleWare;
+        public AsyncHandler Use(Action<HttpContext, Action> middleWare)
         {
-            _middleWare.Add(middleWare);
+            var current = (_middleWare ?? ((ctx, a) => a()));
+            _middleWare = (ctx, n) => current(ctx, () => middleWare(ctx, n));
             return this;
         }
 
@@ -50,6 +46,7 @@ namespace Stool
         public void ProcessRequest(HttpContext context)
         {
             _processor(context);
+            _log.Debug("Finshed processing request!");
         }
 
         public bool IsReusable
@@ -57,70 +54,20 @@ namespace Stool
             get { return true; }
         }
 
-        private readonly List<Action<HttpContext, CancellationTokenSource>> _middleWare = new List<Action<HttpContext, CancellationTokenSource>>(); 
-
         public IAsyncResult BeginProcessRequest(HttpContext context, AsyncCallback cb, object extraData)
         {
-            var cts = new CancellationTokenSource();
-            Task task = null;
-            foreach(var mw in _middleWare)
-            {
-                var current = mw;
-                if (task == null)
-                {
-                    task = Task.Factory.StartNew(() =>
-                                                     {
-                                                         current(context, cts);
-                                                         cts.Token.ThrowIfCancellationRequested();
-                                                     }, cts.Token);
-                }
-                else
-                {
-                    task = task.ContinueWith(t =>
+            return Task.Factory.StartNew(() =>
+                                             {
+                                                 try
                                                  {
-                                                     current(context, cts);
-                                                     cts.Token.ThrowIfCancellationRequested();
-                                                 }, cts.Token,
-                                          TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.AttachedToParent, TaskScheduler.Current);
-                }
-                task.ContinueWith(t =>
-                                      {
-                                          ExceptionHandler(context, t.Exception);
-                                      }, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.AttachedToParent)
-                    .ContinueWith(t =>
-                                      {
-                                          Task.Factory.StartNew(() => { }).ContinueWith(it => cb(it));
-                                      }, TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.AttachedToParent);
-                task.ContinueWith(t =>
-                                      {
-                                          Task.Factory.StartNew(() => { }).ContinueWith(it => cb(it));
-                                      }, TaskContinuationOptions.OnlyOnCanceled | TaskContinuationOptions.AttachedToParent);
-            }
-            
-            task = (task == null)
-                       ? Task.Factory.StartNew(() => _processor(context))
-                       : task.ContinueWith(t =>
-                                               {
-                                                   _processor(context);
-                                               }, TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.AttachedToParent);
-
-            task.ContinueWith(t =>
-                                  {
-                                      if (t.IsFaulted)
-                                      {
-                                          try
-                                          {
-                                              ExceptionHandler(context, t.Exception);
-                                          }
-                                          catch (Exception ex)
-                                          {
-                                              HandleError(context, ex);
-                                          }
-                                      }
-                                      else if(!t.IsCanceled)
-                                        cb(t);
-                                  }, TaskContinuationOptions.AttachedToParent);
-            return task;
+                                                     (_middleWare ?? ((ctx, a) => a()))(context, () => _processor(context));
+                                                     _log.Debug("Finshed processing request!");
+                                                 }
+                                                 catch (Exception ex)
+                                                 {
+                                                     ExceptionHandler(context, ex);
+                                                 }
+                                             }).ContinueWith(t => cb(t));
         }
 
         public void EndProcessRequest(IAsyncResult result)
