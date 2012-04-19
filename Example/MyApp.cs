@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Dynamic;
+using System.Linq;
 using System.Web;
 using Stool;
 
@@ -8,6 +12,7 @@ namespace Stool.Example
     {
         public MyApp()
         {
+            Use(Middleware.RouteDataContextItems);
             CascadeLayouts = true;
             TemplateDirectory = "~/templates";
             Get("", Render("home.vm", GetHomeData));
@@ -48,6 +53,22 @@ namespace Stool.Example
                                      ctx.Response.StatusCode = 500;
                                      ctx.Response.Write("Oh NO!  An error occurred!" + ex);
                                  });
+            Get("customers/{howmany}").Process((ctx, next) => ctx.Send(GetCustomers(Convert.ToInt32(ctx.Items["howmany"]))));
+            Get("customers/{howmany}/{pagesize}/{page}")
+                .Process((ctx, next) =>
+                             {
+                                 ctx.Items.Add("data", GetCustomers(Convert.ToInt32(ctx.Items["howmany"])));
+                                 next();
+                             })
+                .After(Middleware.PageData<Customer>);
+            Post("json/post")
+                .Use(Middleware.BodyToExpando)
+                .Process((ctx, next) =>
+                             {
+                                 dynamic input = ctx.Items["body"] as ExpandoObject;
+                                 if(input == null) throw new Exception("the body was not an ExpandoObject");
+                                 ctx.Send((object)input);
+                             });
         }
 
         public class Customer
@@ -56,13 +77,24 @@ namespace Stool.Example
             public decimal salary { get; set; }
         }
 
+        private readonly Random rand = new Random();
         public Customer GetCustomer(int id)
         {
             return new Customer
                        {
                            name = "id " + id,
-                           salary = new Random().Next(50, 100)
+                           salary = rand.Next(50, 100)
                        };
+        }
+
+        public IEnumerable<Customer> GetCustomers(int howMany)
+        {
+            var customers = new List<Customer>(howMany);
+            for(var i = 0; i < howMany; i++)
+            {
+                customers.Add(GetCustomer(i));
+            }
+            return customers;
         }
 
         public Customer GetHomeData()

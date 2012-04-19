@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Web;
 using System.Web.Routing;
 using Commons.Collections;
@@ -160,9 +159,19 @@ namespace Stool
             return ctx => ctx.Send(dataLoader());
         }
 
+        public AsyncHandler Get(string path)
+        {
+            return Get(path, null);
+        }
+
         public AsyncHandler Get(string path, Action<HttpContext> handler)
         {
             return On(new[] { "GET" }, path, handler);
+        }
+
+        public AsyncHandler Post(string path)
+        {
+            return Post(path, null);
         }
 
         public AsyncHandler Post(string path, Action<HttpContext> handler)
@@ -175,12 +184,19 @@ namespace Stool
             return On(httpMethods, path, handler, null);
         }
 
+        public AsyncHandler On(IEnumerable<string> httpMethods, string path)
+        {
+            return On(httpMethods, path, null, null);
+        }
+
         public AsyncHandler On(IEnumerable<string> httpMethods, string path, Action<HttpContext> handler, Action<HttpContext, Exception> exceptionHandler)
         {
-            var requestHandler = new AsyncHandler(handler);
+            var requestHandler = handler == null
+                                     ? new AsyncHandler()
+                                     : new AsyncHandler(handler);
             foreach(var mw in _middleWare)
             {
-                requestHandler.Use(mw);
+                requestHandler.Before(mw);
             }
             if((exceptionHandler = exceptionHandler ?? ExceptionHandler) != null)
             {

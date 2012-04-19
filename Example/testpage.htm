@@ -1,0 +1,40 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+</head>
+<body>
+    
+    <p><a href="#postJSON">Post JSON</a></p>
+    <p>Response:</p>
+    <p>Status: <span id="status"></span></p>
+    <pre id="response"></pre>
+    
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.js"></script>
+    <script>
+
+        $(document).ready(function () {
+
+            $('a[href="#postJSON"]').click(function () {
+
+                $.ajax('json/post', {
+                    type: 'POST',
+                    contentType: 'application/json',
+                    dataType: 'json',
+                    data: JSON.stringify({ customer: { name: "Jonathan Stewmon", occupation: "developer", location: { city: 'Austin', state: 'TX'}} })
+                })
+                    .done(function (result, statusText, jqXHR) {
+                        $('#status').text(jqXHR.status);
+                        $('#response').text(JSON.stringify(result));
+                    })
+                    .fail(function (jqXHR, statusText) {
+                        $('#status').text(jqXHR.status);
+                        $('#response').text(jqXHR.responseText);
+                    });
+            });
+
+        });
+    </script>
+
+</body>
+</html>
