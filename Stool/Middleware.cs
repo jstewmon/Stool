@@ -132,7 +132,7 @@ namespace Stool
                                  datasize,
                                  page,
                                  pagesize,
-                                 pagecount = datasize / pagesize,
+                                 pagecount = (datasize / pagesize) + 1,
                                  data = data.Skip((page - 1) * pagesize).Take(pagesize)
                              });
         }
