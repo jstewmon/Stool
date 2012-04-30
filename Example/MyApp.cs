@@ -53,8 +53,10 @@ namespace Stool.Example
                                      ctx.Response.StatusCode = 500;
                                      ctx.Response.Write("Oh NO!  An error occurred!" + ex);
                                  });
-            Get("customers/{howmany}").Process((ctx, next) => ctx.Send(GetCustomers(Convert.ToInt32(ctx.Items["howmany"]))));
+            //Get("customers/{howmany}").Process((ctx, next) => ctx.Send(GetCustomers(Convert.ToInt32(ctx.Items["howmany"]))));
             Get("customers/{howmany}/{pagesize}/{page}")
+                .RouteDefault("pagesize", 10)
+                .RouteDefault("page", 1)
                 .Process((ctx, next) =>
                              {
                                  ctx.Items.Add("data", GetCustomers(Convert.ToInt32(ctx.Items["howmany"])));

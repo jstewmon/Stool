@@ -209,6 +209,7 @@ namespace Stool
                                                       {"httpMethod", new HttpMethodConstraint(httpMethods.ToArray())}
                                                   }
                             };
+            requestHandler.Route = route;
             RouteTable.Routes.Add(route);
             return requestHandler;
         }

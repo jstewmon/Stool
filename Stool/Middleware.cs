@@ -56,12 +56,12 @@ namespace Stool
 
         public static void BodyToExpando(HttpContext ctx, Action next)
         {
-            _log.Debug("Begin BodyToExpando");
+            _log.Debug("Begin BodyToExpando " + ctx.Request.RawUrl);
             if (ctx.Request.HttpMethod != "POST")
             {
                 _log.DebugFormat("httpMethod is {0}, calling next()", ctx.Request.HttpMethod);
                 next();
-                _log.Debug("End BodyToExpando");
+                _log.Debug("End BodyToExpando " + ctx.Request.RawUrl);
                 return;
             }
 
@@ -85,7 +85,7 @@ namespace Stool
             }
             _log.Debug("BodyToExpando calling next()");
             next();
-            _log.Debug("End BodyToExpando");
+            _log.Debug("End BodyToExpando " + ctx.Request.RawUrl);
         }
 
         /// <summary>

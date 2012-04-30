@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Web;
+using System.Web.Routing;
 using log4net;
 
 namespace Stool
@@ -8,6 +9,19 @@ namespace Stool
     public class AsyncHandler : IHttpAsyncHandler
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof (AsyncHandler));
+
+        /// <summary>
+        /// The route for which the handler was created.
+        /// </summary>
+        public Route Route { get; internal set; }
+
+        public AsyncHandler RouteDefault(string key, object value)
+        {
+            if(Route.Defaults == null)
+                Route.Defaults = new RouteValueDictionary();
+            Route.Defaults.Add(key, value);
+            return this;
+        }
 
         private Action<HttpContext, Action> _process;
         /// <summary>
@@ -137,9 +151,9 @@ namespace Stool
 
         public void ProcessRequest(HttpContext context)
         {
-            _log.Debug("Enter ProcessRequest");
+            _log.Debug("Enter ProcessRequest " + context.Request.RawUrl);
             Execute(context);
-            _log.Debug("Exit ProcessRequest");
+            _log.Debug("Exit ProcessRequest " + context.Request.RawUrl);
         }
 
         public bool IsReusable
@@ -149,19 +163,19 @@ namespace Stool
 
         private void Execute(HttpContext context)
         {
-            _log.Debug("Enter Execute");
+            _log.Debug("Enter Execute " + context.Request.RawUrl);
             _beforeAll(context,
                        () => _use(context,
                        () => _before(context,
                        () => _process(context,
                        () => _after(context,
                        () => _afterAll(context, () => { }))))));
-            _log.Debug("Exit Execute");
+            _log.Debug("Exit Execute " + context.Request.RawUrl);
         }
 
         public IAsyncResult BeginProcessRequest(HttpContext context, AsyncCallback cb, object extraData)
         {
-            _log.Debug("Enter BeginProcessRequest");
+            _log.Debug("Enter BeginProcessRequest " + context.Request.RawUrl);
             var task = Task.Factory.StartNew(() =>
                     {
                         try
@@ -193,7 +207,7 @@ namespace Stool
                             }
                         }
                     }).ContinueWith(t => cb(t));
-            _log.Debug("Exit BeginProcessRequest");
+            _log.Debug("Exit BeginProcessRequest " + context.Request.RawUrl);
             return task;
         }
 
