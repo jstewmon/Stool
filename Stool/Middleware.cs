@@ -127,12 +127,15 @@ namespace Stool
             if(pagesize == 0) throw new InvalidOperationException("context.Items[\"pagesize\"] must be an integer greater than zero");
             var page = Convert.ToInt32(context.Items["page"]);
             if (page < 0) page = datasize/pagesize + page + 1;
+            var pagecount = datasize/pagesize;
+            if (datasize % pagesize > 0)
+                pagecount++;
             context.Send(new
                              {
                                  datasize,
                                  page,
                                  pagesize,
-                                 pagecount = (datasize / pagesize) + 1,
+                                 pagecount,
                                  data = data.Skip((page - 1) * pagesize).Take(pagesize)
                              });
         }
