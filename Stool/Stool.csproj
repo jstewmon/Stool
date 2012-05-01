@@ -57,6 +57,7 @@
     <Compile Include="Middleware.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RouteHandler.cs" />
+    <Compile Include="ExpressRouter.cs" />
     <Compile Include="StoolApp.cs" />
   </ItemGroup>
   <ItemGroup>
