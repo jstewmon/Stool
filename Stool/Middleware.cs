@@ -15,6 +15,18 @@ namespace Stool
         private static ILog _log = LogManager.GetLogger(typeof(Middleware));
 
         /// <summary>
+        /// Causes <see cref="Extensions.Send{T}(System.Web.HttpContext,T)"/> to check for a query string parameter named "callback",
+        /// and, if it exists, wrap the json being sent like so: string.format("{0}({1})", callback, json)
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <param name="next"></param>
+        public static void AllowJsonp(HttpContext ctx, Action next)
+        {
+            ctx.Items.Add("allow-jsonp", true);
+            next();
+        }
+
+        /// <summary>
         /// Loads body into a <see cref="JObject"/> and adds the result into <paramref name="ctx.Items"/> with the key "body"
         /// </summary>
         /// <param name="ctx"></param>

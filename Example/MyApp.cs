@@ -22,7 +22,7 @@ namespace Stool.Example
             Get("sub/home", Render<Customer>("sub/home.vm", () => null));
             Get("customer", Send(GetHomeData));
             Get("customer/{id}", ctx => ctx.Send(GetCustomer(int.Parse(ctx.Request.RequestContext.RouteData.Values["id"].ToString()))));
-            Get("error/json", ctx => ctx.Send(new {message = "OH NO!!!!"}, 500));
+            Get("error/json", ctx => ctx.Send(new {message = "OH NO!!!!"}, 500)).Use(Middleware.AllowJsonp);
             Get("error/json/{code}", ctx => ctx.Send(new {message = "OH NO!!!!"}, int.Parse(ctx.Request.RequestContext.RouteData.Values["code"].ToString())));
             Get("error/default", ctx => { throw new NotImplementedException(); });
             Get("error/custom/{*err}", ctx => { throw new NotImplementedException(); })
@@ -71,6 +71,9 @@ namespace Stool.Example
                                  if(input == null) throw new Exception("the body was not an ExpandoObject");
                                  ctx.Send((object)input);
                              });
+            Get("jsonp/{input}")
+                .Use(Middleware.AllowJsonp)
+                .Process((ctx, next) => ctx.Send(ctx.Request.RequestContext.RouteData.Values["input"]));
         }
 
         public class Customer
