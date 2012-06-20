@@ -219,9 +219,9 @@ namespace Stool
         /// </summary>
         /// <param name="middleWare"></param>
         /// <returns></returns>
-        public StoolApp Use(Action<HttpContext, Action> middleWare)
+        public StoolApp Use(params Action<HttpContext, Action>[] middleWare)
         {
-            _middleWare.Add(middleWare);
+            _middleWare.AddRange(middleWare);
             return this;
         }
 
