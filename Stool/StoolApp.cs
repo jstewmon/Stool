@@ -227,5 +227,10 @@ namespace Stool
 
         private readonly List<Action<HttpContext, Action>> _middleWare = new List<Action<HttpContext, Action>>();
 
+        public virtual StoolApp Configure()
+        {
+            return this;
+        }
+
     }
 }
