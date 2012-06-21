@@ -20,5 +20,5 @@ These snippets are taken directly from the Example project. The lines are assume
 
 Return data as json
 ```c#
-Get("customer", Send(new { Name = "Bob", Title = "Developer"}));
+Get("customer", Send(() => new { Name = "Bob", Title = "Developer"}));
 ```
